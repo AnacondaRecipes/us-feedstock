@@ -1,7 +1,7 @@
 {% set name = "us" %}
-{% set version = "2.0.2" %}
+{% set version = "3.1.1" %}
 {% set bundle = "tar.gz" %}
-{% set hash = "cb11ad0d43deff3a1c3690c74f0c731cff5b862c73339df2edd91133e1496fbc" %}
+{% set hash = "e347963e8d24a1ca7437af443fa68591776847b50c8650d8ef0eb53482e705c2" %}
 {% set build = 0 %}
 
 package:
@@ -12,31 +12,42 @@ source:
   fn: {{ name }}-{{ version }}.{{ bundle }}
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.{{ bundle }}
   sha256: {{ hash }}
+  patches:
+    - patches/0001-loosen-jellyfish-ties.patch
 
 build:
-  noarch: python
+  # no jellyfish>=0.11.2 on s390x
+  skip: True  # [py<36 or s390x]
   entry_points:
     - states = us.cli.states:main
   number: {{ build }}
-  script: {{ PYTHON }} -m pip install . --no-deps -vv
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
+  build:
+    - patch     # [not win]
+    - m2-patch  # [win]
   host:
     - pip
-    - python >=3.6
+    - python
     - setuptools
+    - wheel
   run:
-    - python >=3.6
-    - jellyfish ==0.5.6
-    - setuptools
+    - python
+    - jellyfish >=0.11.2
 
 test:
   imports:
     - us
     - us.cli
-
+  requires:
+    - pip
+    - pytest
+    - pytz
   commands:
     - states --help
+    - pip check
+    - pytest -v --pyargs us
 
 about:
   home: https://github.com/unitedstates/python-us
@@ -44,7 +55,10 @@ about:
   license_file: LICENSE
   license_family: BSD
   summary: US state meta information and other fun stuff
+  description: |
+    A package for easily working with US and state metadata.
   dev_url: https://github.com/unitedstates/python-us
+  doc_url: https://pypi.org/project/us/
 
 extra:
   recipe-maintainers:
